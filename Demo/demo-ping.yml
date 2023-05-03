@@ -1,0 +1,7 @@
+---
+- hosts: all
+  tasks:
+  - name: Ping a host windows
+    win_ping:
+    register: result_valid
+  - debug: var=result_valid.stdout_lines
