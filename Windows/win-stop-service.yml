@@ -1,0 +1,8 @@
+---
+- hosts: all
+  tasks:
+  - name: Stop Service
+    win_service:
+        name: Spooler
+        state: stopped
+    register: result_valid
