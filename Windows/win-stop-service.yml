@@ -4,5 +4,5 @@
   - name: Stop Service
     win_service:
         name: PrintNotify
-        state: stopped
+        state: started
     register: result_valid
