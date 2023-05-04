@@ -1,8 +1,8 @@
 ---
-- hosts: all
+- hosts: NTECH-WIN10JMM
   tasks:
   - name: Stop Service
     win_service:
-        name: Spooler
+        name: PrintNotify
         state: stopped
     register: result_valid
