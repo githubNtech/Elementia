@@ -1,0 +1,193 @@
+- hosts: localhost
+  
+  vars:
+    - repo:
+        Debian:
+        - apt
+        - dnf
+        - rpm
+        RedHat:
+        - yum
+        - dnf
+        - rpm
+    - packages:
+        Debian:
+        - jq
+        RedHat:
+        - jq
+    - oracle_host: '192.168.11.2'
+    - oracle_port: '1521'
+    - oracle_sid: 'noctopus11'
+    - oracle_user: 'marco'
+    - oracle_password: 'Temporal1'
+    - user_killsession: ''
+    - uid_killsession: 0
+    - userial_killsession: 0
+
+  gather_facts: true
+
+  environment:
+    LD_LIBRARY_PATH: /opt/oracle/instantclient_12_2
+
+
+   
+  tasks:
+    - name: Instalar Repositorios
+      tags: Instalar pre-requisitos
+      become: true
+      become_user: root
+      ansible.builtin.package:
+        name: "{{ repo[ansible_os_family] }}"
+      delegate_to: localhost
+
+    - name: Instalar Paquetes
+      tags: Instalar pre-requisitos
+      become: true
+      become_user: root
+      ansible.builtin.package:
+        name: "{{ packages[ansible_os_family] }}"
+        state: latest
+      delegate_to: localhost
+
+##########################################################################################                                                                                 
+    - name: Sesiones Activas con mas tiempo
+      tags: Sessiones Activas
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "select  ROUND(s.last_call_et/60,2) as TiempoActiva,
+                        to_char(s.logon_time,'hh24:mi dd/mm/yyyy') Conexion,
+                        s.username,
+                        s.server,
+                        s.schemaname,
+                        s.program,
+                        s.inst_id as InstID,
+                        s.sid,
+                        s.machine,
+                        s.process,
+                        s.osuser
+                from gv$session s 
+                where s.status='ACTIVE' 
+                and s.username not in ('DBSNMP','SYS','SYSTEM')
+                order by TiempoActiva Desc"
+      register: reg_Query01
+      delegate_to: localhost
+
+    - set_fact: rs_Json01="{{ reg_Query01.message |from_json}}"
+      when: reg_Query01.changed
+      
+    - debug:
+        msg: "TIEMPOACTIVA: {{item.TIEMPOACTIVA}} CONEXION: {{item.CONEXION}} USERNAME: {{item.USERNAME}} SERVER: {{item.SERVER}} SCHEMANAME: {{item.SCHEMANAME}} PROGRAM: {{item.PROGRAM}} INSTID: {{item.INSTID}} SID: {{item.SID}} MACHINE: {{item.MACHINE}} PROCESS: {{item.PROCESS}} OSUSER: {{item.OSUSER}} " 
+      with_items: "{{ rs_Json01 }}" 
+      
+#     - name: get key value pairs
+#       shell: |
+#         # echo "{{ rs_Json01 }}" | sed "s/'/\"/g" | jq 'to_entries | map((.key) + "=" + .value)|join(",")'
+#       register: key_value
+#       delegate_to: localhost
+# # echo "{{ rs_Json01 }}" | sed "s/'/\"/g" | jq 'to_entries | map((.key) + "=" + .value)|join(",")'
+# # echo '{{ rs_Json01 | to_json }}' | jq 'to_entries | map((.key) + "=" + .value)|join(",")'
+#     - debug:
+#         msg: "{{ key_value }}"
+
+
+##########################################################################################                                                                                 
+    - name: Relacion de Sesiones y sus tiempos de conexion
+      tags: Sessiones Activas
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT  ROUND(s.last_call_et/60,2) as TiempoActiva,
+                        NVL(s.username, '(oracle)') AS username,
+                        s.server,
+                        s.osuser,
+                        s.schemaname,
+                        s.status,
+                        s.service_name as ServiceName,
+                        s.machine,
+                        s.program,
+                        TO_CHAR(s.logon_Time,'DD-MON-YYYY HH24:MI:SS') AS logontime,
+                        s.module
+                FROM    v$session s,
+                        v$process p
+                WHERE  s.paddr = p.addr
+                and s.username not in ('DBSNMP','SYS','SYSTEM')
+                ORDER BY tiempoactiva desc"
+      register: reg_Query02
+      delegate_to: localhost
+
+    - set_fact: rs_Json02="{{ reg_Query02.message |from_json}}"
+      when: reg_Query02.changed
+      
+    - debug:
+        msg: "TIEMPOACTIVA: {{item.TIEMPOACTIVA}} USERNAME: {{item.USERNAME}} SERVER: {{item.SERVER}} OSUSER: {{item.OSUSER}} SCHEMANAME: {{item.SCHEMANAME}} STATUS: {{item.STATUS}} SERVICENAME: {{item.SERVICENAME}} MACHINE: {{item.MACHINE}} PROGRAM: {{item.PROGRAM}} LOGONTIME: {{item.LOGONTIME}} MODULE: {{item.MODULE}} " 
+      with_items: "{{ rs_Json02 }}" 
+
+###########################################################################################
+    - name: Obtener Sesiones Activas por Usuario
+      tags: Cerrar Sesiones
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT 'ALTER SYSTEM KILL SESSION ' || '''' || a.SID || ', ' || a.SERIAL# || '''' AS alter_script
+               FROM v$session a, v$process  b
+               WHERE  a.PADDR= b.ADDR
+                 AND a.username= '{{ user_killsession }}'"
+      register: reg_Query03
+      when: user_killsession != ''
+      delegate_to: localhost
+
+    - set_fact: rs_Json03="{{ reg_Query03.message |from_json}}"
+      when: reg_Query03.changed and user_killsession != ''
+      
+    - debug:
+        msg: "ALTER_SCRIPT: {{ item.ALTER_SCRIPT }}" 
+      with_items: "{{ rs_Json03 }}" 
+      when: user_killsession != ''
+      
+###########################################################################################
+
+    - name: Cerrar Sesiones Activas by UserName
+      tags: Cerrar Sesiones
+      ignore_errors: yes
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "{{ item.ALTER_SCRIPT }}"
+      with_items: "{{ reg_Query03.message }}"
+      register: reg_Query04
+      when: uid_killsession == 0 and user_killsession != ''
+      failed_when:
+        - '"object is not iterable" not in reg_Query04.message'
+      delegate_to: localhost
+      
+    - name: Cerrar Sesiones Activas by SID and SERIAL
+      tags: Cerrar Sesiones
+      ignore_errors: yes
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "ALTER SYSTEM KILL SESSION '{{ uid_killsession }}, {{ userial_killsession }}'"
+      when: uid_killsession > 0
+      register: reg_Query10
+      failed_when:
+        - '"object is not iterable" not in reg_Query10.message'
+      delegate_to: localhost
+
+    - set_fact: rs_Json10="{{ reg_Query10.message |from_json}}"
+      when: reg_Query10.changed
