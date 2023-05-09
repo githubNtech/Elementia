@@ -1,0 +1,85 @@
+- hosts: localhost
+  
+  vars:
+    - repo:
+        Debian:
+        - apt
+        - dnf
+        - rpm
+        RedHat:
+        - yum
+        - dnf
+        - rpm
+    - packages:
+        Debian:
+        - jq
+        RedHat:
+        - jq
+    - oracle_host: '192.168.11.2'
+    - oracle_port: '1521'
+    - oracle_sid: 'noctopus11'
+    - oracle_user: 'marco'
+    - oracle_password: 'Temporal1'
+
+  gather_facts: true
+
+  environment:
+    LD_LIBRARY_PATH: /opt/oracle/instantclient_12_2
+
+
+   
+  tasks:
+    - name: Instalar Repositorios
+      tags: Instalar pre-requisitos
+      become: true
+      become_user: root
+      ansible.builtin.package:
+        name: "{{ repo[ansible_os_family] }}"
+      delegate_to: localhost
+
+    - name: Instalar Paquetes
+      tags: Instalar pre-requisitos
+      become: true
+      become_user: root
+      ansible.builtin.package:
+        name: "{{ packages[ansible_os_family] }}"
+        state: latest
+      delegate_to: localhost
+##########################################################################################                                                                                 
+    - name: Estadisticas de Oracle
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT  sn.name as Nombre,
+                        ss.value as Valor
+                FROM    v$sysstat ss,
+                        v$statname sn
+                WHERE  ss.statistic# = sn.statistic#"
+      register: reg_Query01
+      delegate_to: localhost
+
+    - set_fact: rs_Json01="{{ reg_Query01.message |from_json}}"
+      when: reg_Query01.changed
+      
+    - debug:
+        msg: "NOMBRE: {{item.NOMBRE}} VALOR: {{item.VALOR}} " 
+      with_items: "{{ rs_Json01 }}" 
+
+###########################################################################################
+
+#     - name: get key value pairs
+#       shell: |
+#         # echo "{{ rs_Json01 }}" | sed "s/'/\"/g" | jq 'to_entries | map((.key) + "=" + .value)|join(",")'
+#       register: key_value
+#       delegate_to: localhost
+# # echo "{{ rs_Json01 }}" | sed "s/'/\"/g" | jq 'to_entries | map((.key) + "=" + .value)|join(",")'
+# # echo '{{ rs_Json01 | to_json }}' | jq 'to_entries | map((.key) + "=" + .value)|join(",")'
+#     - debug:
+#         msg: "{{ key_value }}"
+
+#     - debug:
+#         msg: "{{ ansible_facts.os_family }}"
+#       delegate_to: localhost
