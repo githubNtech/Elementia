@@ -1,0 +1,130 @@
+- hosts: localhost
+  
+  vars:
+    - oracle_host: '192.168.11.2'
+    - oracle_port: '1521'
+    - oracle_sid: 'noctopus11'
+    - oracle_user: 'marco'
+    - oracle_password: 'Temporal1'
+
+  gather_facts: true
+
+  environment:
+    LD_LIBRARY_PATH: /opt/oracle/instantclient_12_2
+   
+  tasks:
+  
+ ########################################################################################################
+    
+    - name: Despliega informacion de las Bases de Datos
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT  dbid,
+                        name,
+                        created,
+                        log_mode as LogMode,
+                        open_mode as OpenMode,
+                        database_role as DatabaseRol,
+                        platform_name as PlatformName,
+                        db_unique_name as DBUniqueName  
+                FROM   v$database"
+      register: reg_Query01
+      delegate_to: localhost
+
+    - set_fact: rs_Json01="{{ reg_Query01.message |from_json}}"
+      when: reg_Query01.changed
+      
+    - debug:
+        msg: "DBID: {{item.DBID}} NAME: {{item.NAME}} CREATED: {{item.CREATED}} LOGMODE: {{item.LOGMODE}} OPENMODE: {{item.OPENMODE}} DATABASEROL: {{item.DATABASEROL}} PLATFORMNAME: {{item.PLATFORMNAME}} DBUNIQUENAME: {{item.DBUNIQUENAME}} " 
+      with_items: "{{ rs_Json01 }}" 
+
+ ########################################################################################################
+ 
+     
+    - name: Despliega informacion de las Instancias
+      orclqry:
+        host: '{{ oracle_host }}'
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT  instance_name as InstanceName,
+                        host_name as Server,
+                        version as Version,
+                        startup_time as StartupTime,
+                        database_status as DatabasesStatus,
+                        instance_role as InstanceRole
+                FROM   v$instance"
+      register: reg_Query02
+      delegate_to: localhost
+
+    - set_fact: rs_Json02="{{ reg_Query02.message |from_json}}"
+      when: reg_Query02.changed
+      
+    - debug:
+        msg: "INSTANCENAME: {{item.INSTANCENAME}} SERVER: {{item.SERVER}} VERSION: {{item.VERSION}} STARTUPTIME: {{item.STARTUPTIME}} DATABASESSTATUS: {{item.DATABASESSTATUS}} INSTANCEROLE: {{item.INSTANCEROLE}} " 
+      with_items: "{{ rs_Json02 }}" 
+
+ ########################################################################################################
+  
+    
+    - name: Despliega informacion de los Log Files
+      orclqry:
+        host: '{{ oracle_host }}' 
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT  lf.group# as Grupo,
+                        lf.member as LogFile,
+                        TRUNC(l.bytes/1024/1024) AS sizemb,
+                        l.status,
+                        l.archived,
+                        lf.type
+                FROM   v$logfile lf
+                JOIN v$log l ON l.group# = lf.group#
+                ORDER BY l.thread#,lf.group#, lf.member"
+      register: reg_Query03
+      delegate_to: localhost
+
+    - set_fact: rs_Json03="{{ reg_Query03.message |from_json}}"
+      when: reg_Query03.changed
+      
+    - debug:
+        msg: "GRUPO: {{item.GRUPO}} LOGFILE: {{item.LOGFILE}} SIZEMB: {{item.SIZEMB}} STATUS: {{item.STATUS}} ARCHIVED: {{item.ARCHIVED}} TYPE: {{item.TYPE}} " 
+      with_items: "{{ rs_Json03 }}" 
+
+ ########################################################################################################
+     
+    - name: Despliega informacion de los usuarios de Base de Datos
+      orclqry:
+        host: '{{ oracle_host }}' 
+        port: '{{ oracle_port }}'
+        sid: '{{ oracle_sid }}'
+        user: '{{ oracle_user }}'
+        password: '{{ oracle_password }}'
+        query: "SELECT  username,
+                        account_status as AccountStatus,
+                        TO_CHAR(lock_date, 'DD-MON-YYYY') AS lockdate,
+                        TO_CHAR(expiry_date, 'DD-MON-YYYY') AS expirydate,
+                        default_tablespace as DefaultTablespace,
+                        TO_CHAR(created, 'DD-MON-YYYY') AS created,
+                        profile,
+                        initial_rsrc_consumer_group as RsrcConsumerGroup
+                FROM   dba_users
+                ORDER BY username"
+      register: reg_Query04
+      delegate_to: localhost
+
+    - set_fact: rs_Json04="{{ reg_Query04.message |from_json}}"
+      when: reg_Query04.changed
+      
+    - debug:
+        msg: "USERNAME: {{item.USERNAME}} ACCOUNTSTATUS: {{item.ACCOUNTSTATUS}} LOCKDATE: {{item.LOCKDATE}} EXPIRYDATE: {{item.EXPIRYDATE}} DEFAULTTABLESPACE: {{item.DEFAULTTABLESPACE}} CREATED: {{item.CREATED}} PROFILE: {{item.PROFILE}} RSRCCONSUMERGROUP: {{item.RSRCCONSUMERGROUP}} " 
+      with_items: "{{ rs_Json04 }}" 
+
+ ########################################################################################################
