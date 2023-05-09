@@ -1,0 +1,16 @@
+- hosts: all
+
+  vars:
+    - user: usuario
+    - sqlserver_instance: localhost
+    - sqlserver_username: sa
+    - sqlserver_password: pass
+    - database_name: dbTesting
+    - database_filename: dbTesting
+    - database_newsize: 20MB
+
+  tasks:
+    - name: Execute Command
+      win_command: sqlcmd -S {{ sqlserver_instance }} -U {{ sqlserver_username }} -P {{ sqlserver_password }} -q "USE [master]; ALTER DATABASE [{{ database_name }}] MODIFY FILE (NAME = [{{ database_filename }}], SIZE = {{ database_newsize }});"
+      register: result_valid
+    - debug: var=result_valid.stdout_lines
