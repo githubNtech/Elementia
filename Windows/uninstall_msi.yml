@@ -1,0 +1,22 @@
+- hosts: all
+
+  vars:
+    - downurl: http://www.google.com
+    - packages: demofile
+    - path: C:\Installers\
+
+  tasks:
+    - name: Download MSI File
+      win_get_url:
+        url: "{{ downurl }}"
+        dest: "{{ path }}{{ packages }}.msi"
+      # win_get_url:
+      #   url: ftp://server/file.txt
+      #   dest: '%TEMP%\ftp-file.txt'
+      #   url_username: ftp-user
+      #   url_password: ftp-password
+
+    - name: Uninstall MSI
+      win_package: 
+        path: "{{ path }}{{ packages }}.msi"
+        state: absent
