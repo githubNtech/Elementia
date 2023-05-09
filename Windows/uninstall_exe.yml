@@ -1,0 +1,25 @@
+- hosts: all
+
+  vars:
+    - downurl: http://www.google.com
+    - packages: demofile
+    - path: C:\Installers\
+    - argument: /S
+    
+  tasks:
+    - name: Download EXE File
+      win_get_url:
+        url: "{{ downurl }}"
+        dest: "{{ path }}{{ packages }}.exe"
+      # win_get_url:
+      #   url: ftp://server/file.txt
+      #   dest: '%TEMP%\ftp-file.txt'
+      #   url_username: ftp-user
+      #   url_password: ftp-password
+
+    - name: Uninstall EXE
+      win_package: 
+        path: "{{ path }}{{ packages }}.exe"
+        arguments: "{{ argument }}"
+        # produc_id: "{{ packages['Windows'] }}"
+        state: absent
