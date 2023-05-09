@@ -1,0 +1,18 @@
+- name: Create MSSQL DB's
+  hosts: winpsrpwinrmdc
+  vars:
+    database_name: dbTesting
+    sqlserver_instance: instancename
+    sqlserver_username: userdb
+    sqlserver_password: pass
+  tasks:
+  - name: Create a database
+    lowlydba.sqlserver.database:
+      sql_instance: "{{sqlserver_instance}}"
+      database: "{{database_name}}"
+      state: present
+    register: result
+  - assert:
+      that:
+        - result is changed
+        - result.data.Name == "{{database_name}}"
