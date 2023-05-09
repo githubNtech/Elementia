@@ -1,0 +1,12 @@
+- hosts: all
+
+  vars:
+    user: usuario
+
+  tasks:
+    - name: Delete sudoer file
+      become: true
+      become_user: root
+      file:
+        state: absent
+        path: "/etc/sudoers.d/{{ user }}" 

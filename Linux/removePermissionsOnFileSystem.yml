@@ -1,0 +1,13 @@
+- hosts: all
+
+  vars:
+    user: usuario
+
+  tasks:
+    - name: Remove user to sudoers file system
+      become: true
+      become_user: root
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: absent
+        regexp: '^{{ user }}'

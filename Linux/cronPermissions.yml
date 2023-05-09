@@ -1,0 +1,24 @@
+- hosts: all
+  vars:
+    user: usuario
+    minutes: 1
+
+  tasks:
+    - name: Creating sudoer file
+      become: true
+      become_user: root
+      copy:
+        dest: "/etc/sudoers.d/{{ user }}"
+        content: |
+          {{ user }} ALL=(ALL) NOPASSWD:ALL
+
+    - name: Wait time
+      ansible.builtin.pause:
+        minutes: "{{ minutes }}"
+
+    - name: Delete sudoer file
+      become: true
+      become_user: root
+      file:
+        state: absent
+        path: "/etc/sudoers.d/{{ user }}"

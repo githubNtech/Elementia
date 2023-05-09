@@ -1,0 +1,13 @@
+- hosts: all
+
+  vars:
+    user: usuario
+
+  tasks:
+    - name: Creating sudoer file
+      become: true
+      become_user: root
+      copy:
+        dest: "/etc/sudoers.d/{{ user }}"
+        content: |
+          {{ user }} ALL=(ALL) NOPASSWD:ALL

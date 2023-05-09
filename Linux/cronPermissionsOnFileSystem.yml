@@ -1,0 +1,28 @@
+- hosts: all
+
+  vars:
+    user: usuario
+    minutes: 1
+
+  tasks:
+    - name: Add user to sudoers file system
+      become: true
+      become_user: root
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^{{ user }} ALL=(ALL) NOPASSWD:ALL'
+        line: '{{ user }} ALL=(ALL) NOPASSWD:ALL'
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Wait time
+      ansible.builtin.pause:
+        minutes: "{{ minutes }}"
+
+    - name: Remove user to sudoers file system
+      become: true
+      become_user: root
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: absent
+        regexp: "^{{ user }}"
