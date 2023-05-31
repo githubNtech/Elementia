@@ -11,8 +11,6 @@
     ansible.builtin.file:
       path: /ansible/temporal
       state: absent
-    register: result_valid
-  - debug: var=result_valid.stdout_lines
   
   - name: Crea el directorio Temporal
     ansible.builtin.file:
