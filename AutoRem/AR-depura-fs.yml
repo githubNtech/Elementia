@@ -16,6 +16,6 @@
   
   - name: Crea el directorio Temporal
     ansible.builtin.file:
-    path: /ansible/temporal
-    state: directory
-    mode: '0755'
+      path: /ansible/temporal
+      state: directory
+      mode: '0755'
