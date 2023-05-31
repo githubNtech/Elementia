@@ -2,7 +2,7 @@
 - hosts: ntpocrh8005
   tasks:
   - name: revisa proceso
-    shell: echo hola
+    shell: echo Inicia-Servicio
     register: result_valid
   - debug: var=result_valid.stdout_lines
   
