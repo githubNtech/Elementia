@@ -8,6 +8,8 @@
     delegate_to: localhost
   
   - name: Depura File system
-    command: "rm -rf /ansible/temporal/*"
+    ansible.builtin.file:
+      path: /ansible/temporal
+      state: absent
     register: result_valid
   - debug: var=result_valid.stdout_lines
