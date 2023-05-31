@@ -1,0 +1,12 @@
+---
+- hosts: ntpocrh8005
+  tasks:
+  - name: Revisa FS
+    shell: echo Depura-FS
+    register: result_valid
+  - debug: var=result_valid.stdout_lines
+  
+  - name: Depura File system
+    command: "rm -rf /ansible/temporal/*"
+    register: result_valid
+  - debug: var=result_valid.stdout_lines
