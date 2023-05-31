@@ -1,5 +1,5 @@
 ---
-- hosts: NTPOCRH8005
+- hosts: ntpocrh8005
   tasks:
   - name: revisa proceso
     shell: echo hola
