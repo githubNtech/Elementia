@@ -1,10 +1,11 @@
 ---
 - hosts: ntpocrh8005
   tasks:
-  - name: Revisa FS
-    shell: echo Depura-FS
-    register: result_valid
-  - debug: var=result_valid.stdout_lines
+  
+  - name: Revisa el File System
+    ansible.builtin.wait_for:
+        timeout: 70
+    delegate_to: localhost
   
   - name: Depura File system
     command: "rm -rf /ansible/temporal/*"
