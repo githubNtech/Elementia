@@ -1,0 +1,12 @@
+---
+- hosts: NTPOCRH8005
+  tasks:
+  - name: revisa proceso
+    shell: echo hola
+    register: result_valid
+  - debug: var=result_valid.stdout_lines
+  
+  - name: Inicializa Servicio
+    ansible.builtin.wait_for:
+        timeout: 60
+    delegate_to: localhost
