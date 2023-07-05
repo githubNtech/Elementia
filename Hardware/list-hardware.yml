@@ -1,4 +1,4 @@
-- hosts: win10
+- hosts: ntlab002
 
   vars:
     - user: usuario
