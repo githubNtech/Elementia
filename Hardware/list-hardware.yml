@@ -1,0 +1,56 @@
+- hosts: win10
+
+  vars:
+    - user: usuario
+
+  tasks:
+    
+        
+    - name: Obtiene listado de SO
+      win_shell: wmic OS get /all /format:LIST
+      register: info_so
+    - debug:
+        var: info_so.stdout_lines
+        
+    - name: Obtiene listado de CSProduct
+      win_shell: wmic csproduct get /all /format:LIST
+      register: info_csproduct
+    - debug:
+        var: info_csproduct.stdout_lines
+        
+    - name: Obtiene listado de BIOS
+      win_shell: wmic BIOS get /all /format:LIST
+      register: info_bios
+    - debug:
+        var: info_bios.stdout_lines
+        
+    - name: Obtiene listado de CPU
+      win_shell: wmic CPU get /all /format:LIST
+      register: info_cpu
+    - debug:
+        var: info_cpu.stdout_lines
+        
+    - name: Obtiene listado de Network
+      win_shell: wmic NICCONFIG Where IPEnabled=TRUE get /format:list
+      register: info_network
+    - debug:
+        var: info_network.stdout_lines
+        
+    - name: Obtiene listado de Computer System
+      win_shell: wmic COMPUTERSYSTEM get /all /format:LIST
+      register: info_computer
+    - debug:
+        var: info_computer.stdout_lines
+        
+    - name: Obtiene listado de Memoria
+      win_shell: wmic MEMPHYSICAL get /all /format:LIST
+      register: info_memoria
+    - debug:
+        var: info_memoria.stdout_lines
+        
+    - name: Lista las caracteristicas basicas del equipo
+      win_shell: c:\windows\system32\winsat FEATURES
+      register: info_features
+    - debug:
+        var: info_features.stdout_lines
+        
